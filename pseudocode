@@ -1,0 +1,177 @@
+Definitions:
+
+Gate { # A tuple of 6 items
+    (target, control, target_state, control_state, inc_or_dec, type)
+}
+
+Circuit {
+    n <- number of lines
+    c <- n-1
+    Queue <- First In First Out Data-Structure
+
+    depth <-  ⌊ log2(c) ⌋  (height of the binary tree - 1)
+    levels <- [[] for _ in [1,2,3,...depth]]
+    gpll <- ⌊c/4⌋   # grandparent of last element of last level
+
+    ternary_gate_count, quaternary_gate_count <- 0, 0
+
+    qubits , qutrits, ququads <- {}, {}, {}
+    final_circuit <- []
+}
+
+Helper Sub Routines:
+
+function FLIP(cnot_gate):
+    cnot_gate.inc_or_dec = ~inc_or_dec
+    RETURN cnot_gate
+END FLIP
+
+function REFLECTION(levels):
+    reflected_levels <- []
+
+    FOR level in REVERSED(levels):
+        reflected_decomp <- []
+        FOR decomp in level:
+            left <- FLIP(decomp.left)
+            right <- FLIP(decomp.right)
+            reflected_decomp <- reflected_decomp + (right, left) 
+	  ENDFOR
+
+        reflected_levels <- reflected_levels + reflected_decomp
+        ENDFOR
+    ENDFOR
+
+    RETURN reflected_Levels
+END REFLECTION
+
+
+
+function MAKE_GATES(left, center, right, condition, stage):
+    gate_config <- []
+
+    SWITCH stage:
+        CASE id:
+            IF condition THEN:
+                gate_config <-
+            ELSE:
+                gate_config <-
+            ENDIF
+        CASE gpll:
+            IF condition THEN:
+                gate_config <-
+            ELSE:
+                gate_config <-
+            ENDIF
+        CASE sd:
+            gate_config <-
+
+        return gate_config
+
+
+
+
+
+
+function MAIN():
+    qubits <- qubits ∪ n
+    qutrits <- qutrits ∪ 1
+    current_depth <- -1
+
+    PUSH 1 TO Queue # root of the binary tree
+
+    WHILE Queue IS NOT EMPTY:
+        current_node <- POP Queue
+        current_decomposition <- []
+
+        IF current_node == 2 ^ (current_depth + 1) THEN:
+            current_depth <- current_depth + 1
+        ENDIF
+
+        left_node, right_node <- current_node * 2, current_node*2 + 1
+        index <- depth - current_depth - 1
+
+        IF current_node > gpll THEN:    # immediate decomp
+            IF right_node > c THEN:     # no right child = 2 qubit decomp
+                current_decomposition <- [gate<current_node, left_node, 3, 
+								1, +, Ternary>]
+                ternary_gate_count <- ternary_gate_count + 2
+                qubits <- qubits ∪ left_node
+            ELSE:
+                current_decomposition <- [gate<right_node, left_node, 3, 1, 
+								+, Ternary>,
+                                          gate<current_node, right_node, 3, 
+								2, +, Ternary>]
+                ternary_gate_count <- ternary_gate_count + 4
+                qubits <- qubits ∪ left_node
+                qutrits <- qutrits ∪ right_node
+            ENDIF
+        ELIF current_node == gpll THEN
+            IF 2*⌊c/2⌋ - 4*⌊c/4⌋ == 2 THEN: # grandchild present
+                current_decomposition <- [gate<right_node, left_node, 4, 2,
+								+, Quaternary>,
+                                          gate<current_node, right_node, 3, 
+								3, +, Quaternary>]
+                quaternary_gate_count <- quaternary_gate_count + 4
+                qutrits <- qutrits ∪ left_node
+                ququads <- ququads ∪ right_node
+                PUSH left_node, right_node TO Queue
+            ELSE:
+                current_decomposition <- [gate<right_node, left_node, 3, 2, 
+								+, Ternary>,
+                                          gate<current_node, right_node, 3, 
+								2, +, Ternary>]
+                ternary_gate_count <- ternary_gate_count + 4
+
+                qutrits <- qutrits ∪ left_node ∪ right_node
+                PUSH left_node TO Queue
+            ENDIF
+
+# anything after gpll is I.D. so belongs on a separate level
+            current_depth <- current_depth + 1 
+
+        ELSE: # subsequent decomp
+            current_decomposition <- [gate<right_node, left_node, 4, 2, +, 
+							Quaternary>,
+                                      gate<current_node, right_node, 3, 3, 
+							+, Quaternary>]
+            quaternary_gate_count <- quaternary_gate_count + 4
+            qutrits <- qutrits ∪ left_node
+            ququads <- ququads ∪ right_node
+            PUSH left_node, right_node TO Queue
+        ENDIF
+
+        levels[index] <- levels[index] + current_decomposition
+    ENDWHILE
+
+    # combining levels, root & target CNOT and reflection of levels to undo the effects of the CNOT on the controls
+    final_circuit <- levels + gate<n, 1, 1, 2, x, Ternary> + 
+								REFLECTION(levels)
+END MAIN
+
+
+
+function MAP_LINES():
+
+    function INORDER_TRAVERSAL(node):
+        IF node > c THEN:
+            RETURN []
+        ENDIF
+
+        left, right <- node*2, node*2 + 1
+
+        RETURN INORDER_TRAVERSAL(left) + node + INORDER_TRAVERSAL(right)
+
+
+    order <- INORDER_TRAVERSAL(1)
+
+    mapping <- {}
+
+    # associate binary tree node index with inorder index
+    FOR index IN [0,1,2,... length(order) - 1]:
+        elem <- order[index]
+        mapping[elem] <- index
+    ENDFOR
+
+    mapping[n] <- c
+
+    RETURN mapping
