@@ -3,7 +3,7 @@ from gate import Gate
 from qudiet.core.quantum_circuit import QuantumCircuit
 
 
-def RUN_CIRC(n=12):
+def RUN_CIRC(n, input_states=None):
     circ = Circuit(n)
     circ.simulate()
 
@@ -11,17 +11,18 @@ def RUN_CIRC(n=12):
     qutrits = {circ.actual_mapping.get(item) for item in circ.qutrits}
     ququads = {circ.actual_mapping.get(item) for item in circ.ququads}
 
-    print("qubits",     qubits      )
-    print("qutrits",    qutrits    )
-    print("ququads",    ququads    )
+    # print("qubits", qubits)
+    # print("qutrits", qutrits)
+    # print("ququads", ququads)
 
     qregs = [2] * n
-    init_states = [1] * n
-    init_states[-1] = 1
+    init_states = input_states if input_states is not None else [1] * n  # all 1 unless specified
+    # init_states = [1] * n
+    # init_states[-1] = 1
     # init_states[-2] = 1
     # init_states[-3] = 1
 
-    print(init_states)
+    # print(init_states)
 
     for index, _ in enumerate(qregs):
         if index in ququads:
@@ -29,7 +30,7 @@ def RUN_CIRC(n=12):
         elif index in qutrits:
             qregs[index] = 3
 
-    print("reg is ", qregs)
+    # print("reg is ", qregs)
 
     qc = QuantumCircuit(qregs=qregs, init_states=init_states)
 
@@ -53,7 +54,10 @@ def RUN_CIRC(n=12):
 
     res = qc.run()
 
-    print(res)
+    output = list(res[0].keys())[0]
+    # print(output)
+
+    return output
 
 
 def make_CNOT_gate(g: Gate, mapping: dict):
@@ -61,6 +65,6 @@ def make_CNOT_gate(g: Gate, mapping: dict):
 
     plus = -1 if g.inc_or_dec == "-" else 1
 
-    print(f'c={control}, t={target} -> {"+" if plus == 1 else "-"}')
+    # print(f'c={control}, t={target} -> {"+" if plus == 1 else "-"}')
 
     return control, target, plus

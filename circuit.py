@@ -105,7 +105,7 @@ class Circuit:
         self.qutrits.add(1)
         self.qubits.add(self.n)
 
-        print(self.depth)
+        # print(self.depth)
         self.q.enqueue(1)
         current_depth = -1
 
@@ -303,6 +303,6 @@ class Circuit:
         mapping = {elem: index for index, elem in enumerate(order)}
         mapping[self.n] = self.n - 1
 
-        print(mapping)
+        # print(mapping)
 
         return mapping
